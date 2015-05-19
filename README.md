@@ -23,6 +23,7 @@ Here you find source for our js libary, feel free to contribute.
 
 ## Build
 ```bash
+$ npm install
 $ make
 ```
 
