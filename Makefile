@@ -3,7 +3,7 @@ DUO = $(BIN)/duo
 MINIFY = $(BIN)/uglifyjs
 WATCH = $(BIN)/wr
 WATCH_FILES = lib index.js Makefile
-BUILD = ./build
+BUILD = ./dist
 
 build: node_modules
 	@mkdir -p $(BUILD)
