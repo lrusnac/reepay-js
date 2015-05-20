@@ -13,6 +13,12 @@ Here you find source for our js libary, feel free to contribute.
 <script src="https://js.reepay.com/v3/reepay.js"></script>
 ```
 
+### bower
+```bash
+$ bower install reepay-js
+```
+
+
 **index.html**
 
 ```html
