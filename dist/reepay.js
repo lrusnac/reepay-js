@@ -1614,7 +1614,7 @@ module.exports = token;
 var fields = [
     'first_name'
   , 'last_name'
-  , 'cardnumber'
+  , 'number'
   , 'month'
   , 'year'
   , 'cvv'
@@ -1705,7 +1705,7 @@ function normalize(options) {
         data.values = options;
     }
 
-    data.values.cardnumber = parseCard(data.values.cardnumber);
+    data.values.number = parseCard(data.values.number);
 
     return data;
 }
@@ -1720,8 +1720,8 @@ function normalize(options) {
 function validate(input) {
     var errors = [];
 
-    if (!this.validate.cardNumber(input.cardnumber)) {
-        errors.push('cardnumber');
+    if (!this.validate.cardNumber(input.number)) {
+        errors.push('number');
     }
 
     if (!this.validate.expiry(input.month, input.year)) {
