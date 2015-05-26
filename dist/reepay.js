@@ -126,7 +126,7 @@ var defaults = {
     timeout: 60000,
     publicKey: '',
     cors: false,
-    api: 'https://card.reepay.com/v1/token'
+    api: 'https://card.reepay.com/v1'
 };
 
 module.exports = Reepay;
