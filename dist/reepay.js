@@ -10,11 +10,10 @@
    * Require `name`.
    *
    * @param {String} name
-   * @param {Boolean} jumped
    * @api public
    */
 
-  function require(name, jumped){
+  function require(name){
     if (cache[name]) return cache[name].exports;
     if (modules[name]) return call(name, require);
     throw new Error('cannot find module "' + name + '"');
@@ -30,21 +29,26 @@
    */
 
   function call(id, require){
-    var m = { exports: {} };
+    var m = cache[id] = { exports: {} };
     var mod = modules[id];
     var name = mod[2];
     var fn = mod[0];
+    var threw = true;
 
-    fn.call(m.exports, function(req){
-      var dep = modules[id][1][req];
-      return require(dep || req);
-    }, m, m.exports, outer, modules, cache, entries);
-
-    // store to cache after successful resolve
-    cache[id] = m;
-
-    // expose as `name`.
-    if (name) cache[name] = cache[id];
+    try {
+      fn.call(m.exports, function(req){
+        var dep = modules[id][1][req];
+        return require(dep || req);
+      }, m, m.exports, outer, modules, cache, entries);
+      threw = false;
+    } finally {
+      if (threw) {
+        delete cache[id];
+      } else if (name) {
+        // expose as 'name'.
+        cache[name] = cache[id];
+      }
+    }
 
     return cache[id].exports;
   }
@@ -126,7 +130,8 @@ var defaults = {
     timeout: 60000,
     publicKey: '',
     cors: false,
-    api: 'https://card.reepay.com/v1'
+    api: 'https://card.reepay.com/v1',
+    core: 'https://api.reepay.com/v1'
 };
 
 module.exports = Reepay;
@@ -167,6 +172,10 @@ Reepay.prototype.configure = function (options) {
 
     if (options.api) {
         this.config.api = options.api;
+    }
+
+    if (options.core) {
+        this.config.core = options.core;
     }
 
     if (options.cors) {
@@ -217,7 +226,7 @@ Reepay.prototype.request = function (method, route, data, done) {
     }
 
     data.version = this.version;
-    data.key = this.config.publicKey;
+  //  data.key = this.config.publicKey;
 
     if (this.config.cors) {
         return this.xhr(method, route, data, done);
@@ -239,7 +248,7 @@ Reepay.prototype.request = function (method, route, data, done) {
 Reepay.prototype.xhr = function (method, route, data, done) {
 
     var req = new XHR;
-    var url = this.url(route);
+    var url = route;
     var payload = qs.stringify(data);
 
     if (method === 'get') {
@@ -293,13 +302,19 @@ Reepay.prototype.xhr = function (method, route, data, done) {
 
 Reepay.prototype.jsonp = function (route, data, done) {
 
-    var url = this.url(route) + '?' + qs.stringify(data);
+    var url = route + '?' + qs.stringify(data);
 
     jsonp(url, {
         timeout: this.config.timeout
     }, function (err, res) {
         if (err) return done(err);
         if (res.error) {
+
+          if(res.error.http_status){
+            res.error.message = res.error.error;
+            res.error.name = res.error.http_status;
+          }
+
             done(errors('api-error', res.error));
         } else {
             done(null, res);
@@ -311,6 +326,7 @@ Reepay.prototype.jsonp = function (route, data, done) {
 Reepay.prototype.open = require('./reepay/open');
 Reepay.prototype.token = require('./reepay/token');
 Reepay.prototype.validate = require('./reepay/validate');
+
 }, {"yields/merge":3,"component/type":4,"visionmedia/node-querystring":5,"webmodules/jsonp":6,"./version":7,"./errors":8,"./reepay/open":9,"./reepay/token":10,"./reepay/validate":11}],
 3: [function(require, module, exports) {
 
@@ -1344,7 +1360,8 @@ function plural(ms, n, name) {
  * Current package/component version.
  */
 
-module.exports = '1.0.1';
+module.exports = '1.0.2';
+
 }, {}],
 8: [function(require, module, exports) {
 /**
@@ -1670,13 +1687,21 @@ function token(options, done) {
         }));
     }
 
-    this.request('post', '/token', input, function (err, res) {
-        if (err) return done(err);
-        if (data.fields.token && res.id) {
-            data.fields.token.value = res.id;
-        }
-        done(null, res);
+    this.request('post', this.config.core + '/authenticate/account_token',{pkey : this.config.publicKey }, function(err, res){
+      if(err) return done(err);
+
+        input.key = res.token;
+
+        this.request('post', this.config.api + '/token', input, function (err, res) {
+            if (err) return done(err);
+            if (data.fields.token && res.id) {
+                data.fields.token.value = res.id;
+            }
+            done(null, res);
+        });
+
     });
+
 };
 
 /**
@@ -1740,6 +1765,7 @@ function validate(input) {
 
     return errors;
 }
+
 }, {"component/bind":16,"component/each":17,"component/type":4,"component/indexof":18,"../util/dom":19,"../util/parse-card":20,"../errors":8}],
 16: [function(require, module, exports) {
 /**
@@ -2438,162 +2464,7 @@ module.exports = function(arr, fn){
   }
   return ret;
 };
-}, {"to-function":28}],
-28: [function(require, module, exports) {
-
-/**
- * Module Dependencies
- */
-
-var expr;
-try {
-  expr = require('props');
-} catch(e) {
-  expr = require('component-props');
-}
-
-/**
- * Expose `toFunction()`.
- */
-
-module.exports = toFunction;
-
-/**
- * Convert `obj` to a `Function`.
- *
- * @param {Mixed} obj
- * @return {Function}
- * @api private
- */
-
-function toFunction(obj) {
-  switch ({}.toString.call(obj)) {
-    case '[object Object]':
-      return objectToFunction(obj);
-    case '[object Function]':
-      return obj;
-    case '[object String]':
-      return stringToFunction(obj);
-    case '[object RegExp]':
-      return regexpToFunction(obj);
-    default:
-      return defaultToFunction(obj);
-  }
-}
-
-/**
- * Default to strict equality.
- *
- * @param {Mixed} val
- * @return {Function}
- * @api private
- */
-
-function defaultToFunction(val) {
-  return function(obj){
-    return val === obj;
-  };
-}
-
-/**
- * Convert `re` to a function.
- *
- * @param {RegExp} re
- * @return {Function}
- * @api private
- */
-
-function regexpToFunction(re) {
-  return function(obj){
-    return re.test(obj);
-  };
-}
-
-/**
- * Convert property `str` to a function.
- *
- * @param {String} str
- * @return {Function}
- * @api private
- */
-
-function stringToFunction(str) {
-  // immediate such as "> 20"
-  if (/^ *\W+/.test(str)) return new Function('_', 'return _ ' + str);
-
-  // properties such as "name.first" or "age > 18" or "age > 18 && age < 36"
-  return new Function('_', 'return ' + get(str));
-}
-
-/**
- * Convert `object` to a function.
- *
- * @param {Object} object
- * @return {Function}
- * @api private
- */
-
-function objectToFunction(obj) {
-  var match = {};
-  for (var key in obj) {
-    match[key] = typeof obj[key] === 'string'
-      ? defaultToFunction(obj[key])
-      : toFunction(obj[key]);
-  }
-  return function(val){
-    if (typeof val !== 'object') return false;
-    for (var key in match) {
-      if (!(key in val)) return false;
-      if (!match[key](val[key])) return false;
-    }
-    return true;
-  };
-}
-
-/**
- * Built the getter function. Supports getter style functions
- *
- * @param {String} str
- * @return {String}
- * @api private
- */
-
-function get(str) {
-  var props = expr(str);
-  if (!props.length) return '_.' + str;
-
-  var val, i, prop;
-  for (i = 0; i < props.length; i++) {
-    prop = props[i];
-    val = '_.' + prop;
-    val = "('function' == typeof " + val + " ? " + val + "() : " + val + ")";
-
-    // mimic negative lookbehind to avoid problems with nested properties
-    str = stripNested(prop, str, val);
-  }
-
-  return str;
-}
-
-/**
- * Mimic negative lookbehind to avoid problems with nested properties.
- *
- * See: http://blog.stevenlevithan.com/archives/mimic-lookbehind-javascript
- *
- * @param {String} prop
- * @param {String} str
- * @param {String} val
- * @return {String}
- * @api private
- */
-
-function stripNested (prop, str, val) {
-  return str.replace(new RegExp('(\\.)?' + prop, 'g'), function($0, $1) {
-    return $1 ? $0 : val;
-  });
-}
-
-}, {"props":23,"component-props":23}],
+}, {"to-function":22}],
 20: [function(require, module, exports) {
 /**
  * Removes dashes and spaces from a card number.
@@ -2846,8 +2717,8 @@ module.exports = {
         return /^\d+$/.test(number) && (number.length === 3 || number.length === 4);
     }
 };
-}, {"component/trim":29,"component/indexof":18,"../util/parse-card":20}],
-29: [function(require, module, exports) {
+}, {"component/trim":28,"component/indexof":18,"../util/parse-card":20}],
+28: [function(require, module, exports) {
 
 exports = module.exports = trim;
 
