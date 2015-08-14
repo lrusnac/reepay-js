@@ -10,10 +10,11 @@
    * Require `name`.
    *
    * @param {String} name
+   * @param {Boolean} jumped
    * @api public
    */
 
-  function require(name){
+  function require(name, jumped){
     if (cache[name]) return cache[name].exports;
     if (modules[name]) return call(name, require);
     throw new Error('cannot find module "' + name + '"');
@@ -29,26 +30,21 @@
    */
 
   function call(id, require){
-    var m = cache[id] = { exports: {} };
+    var m = { exports: {} };
     var mod = modules[id];
     var name = mod[2];
     var fn = mod[0];
-    var threw = true;
 
-    try {
-      fn.call(m.exports, function(req){
-        var dep = modules[id][1][req];
-        return require(dep || req);
-      }, m, m.exports, outer, modules, cache, entries);
-      threw = false;
-    } finally {
-      if (threw) {
-        delete cache[id];
-      } else if (name) {
-        // expose as 'name'.
-        cache[name] = cache[id];
-      }
-    }
+    fn.call(m.exports, function(req){
+      var dep = modules[id][1][req];
+      return require(dep || req);
+    }, m, m.exports, outer, modules, cache, entries);
+
+    // store to cache after successful resolve
+    cache[id] = m;
+
+    // expose as `name`.
+    if (name) cache[name] = cache[id];
 
     return cache[id].exports;
   }
@@ -1629,21 +1625,7 @@ module.exports = token;
  */
 
 var fields = [
-    'first_name'
-  , 'last_name'
-  , 'number'
-  , 'month'
-  , 'year'
-  , 'cvv'
-  , 'address1'
-  , 'address2'
-  , 'country'
-  , 'city'
-  , 'state'
-  , 'postal_code'
-  , 'phone'
-  , 'vat_number'
-  , 'token'
+  'first_name', 'last_name', 'number', 'month', 'year', 'cvv', 'address1', 'address2', 'country', 'city', 'state', 'postal_code', 'phone', 'vat_number', 'token'
 ];
 
 /**
@@ -1672,36 +1654,39 @@ var fields = [
  */
 
 function token(options, done) {
-    var open = bind(this, this.open);
-    var data = normalize(options);
-    var input = data.values;
-    var userErrors = validate.call(this, input);
+  var open = bind(this, this.open);
+  var data = normalize(options);
+  var input = data.values;
+  var userErrors = validate.call(this, input);
 
-    if ('function' !== type(done)) {
-        throw errors('missing-callback');
-    }
+  if ('function' !== type(done)) {
+    throw errors('missing-callback');
+  }
 
-    if (userErrors.length) {
-        return done(errors('validation', {
-            fields: userErrors
-        }));
-    }
+  if (userErrors.length) {
+    return done(errors('validation', {
+      fields: userErrors
+    }));
+  }
 
-    this.request('post', this.config.core + '/authenticate/account_token',{pkey : this.config.publicKey }, function(err, res){
-      if(err) return done(err);
+  var that = this;
 
-        input.key = res.token;
+  this.request('post', this.config.core + '/authenticate/account_token', {
+    pkey: this.config.publicKey
+  }, function(err, res) {
+    if (err) return done(err);
 
-        this.request('post', this.config.api + '/token', input, function (err, res) {
-            if (err) return done(err);
-            if (data.fields.token && res.id) {
-                data.fields.token.value = res.id;
-            }
-            done(null, res);
-        });
+    input.account_token = res.token;
 
+    that.request('post', that.config.api + '/token', input, function(err, res) {
+      if (err) return done(err);
+      if (data.fields.token && res.id) {
+        data.fields.token.value = res.id;
+      }
+      done(null, res);
     });
 
+  });
 };
 
 /**
@@ -1712,27 +1697,27 @@ function token(options, done) {
  */
 
 function normalize(options) {
-    var el = dom.element(options);
-    var data = {
-        fields: {},
-        values: {}
-    };
+  var el = dom.element(options);
+  var data = {
+    fields: {},
+    values: {}
+  };
 
-    if (el && 'form' === el.nodeName.toLowerCase()) {
-        each(el.querySelectorAll('[data-reepay]'), function (field) {
-            var name = dom.data(field, 'reepay');
-            if (~index(fields, name)) {
-                data.fields[name] = field;
-                data.values[name] = dom.value(field);
-            }
-        });
-    } else {
-        data.values = options;
-    }
+  if (el && 'form' === el.nodeName.toLowerCase()) {
+    each(el.querySelectorAll('[data-reepay]'), function(field) {
+      var name = dom.data(field, 'reepay');
+      if (~index(fields, name)) {
+        data.fields[name] = field;
+        data.values[name] = dom.value(field);
+      }
+    });
+  } else {
+    data.values = options;
+  }
 
-    data.values.number = parseCard(data.values.number);
+  data.values.number = parseCard(data.values.number);
 
-    return data;
+  return data;
 }
 
 /**
@@ -1743,27 +1728,176 @@ function normalize(options) {
  */
 
 function validate(input) {
-    var errors = [];
+  var errors = [];
 
-    if (!this.validate.cardNumber(input.number)) {
-        errors.push('number');
+  if (!this.validate.cardNumber(input.number)) {
+    errors.push('number');
+  }
+
+  if (!this.validate.expiry(input.month, input.year)) {
+    errors.push('month', 'year');
+  }
+
+  if (input.cvv && !this.validate.cvv(input.cvv)) {
+    errors.push('cvv');
+  }
+
+  each(this.config.required, function(field) {
+    if (!input[field] && ~index(fields, field)) {
+      errors.push(field);
     }
+  });
 
-    if (!this.validate.expiry(input.month, input.year)) {
-        errors.push('month', 'year');
-    }
+  return errors;
+}/*!
+ * Module dependencies.
+ */
+var bind = require('component/bind');
+var each = require('component/each');
+var type = require('component/type');
+var index = require('component/indexof');
+var dom = require('../util/dom');
+var parseCard = require('../util/parse-card');
+var errors = require('../errors');
 
-    if (input.cvv && !this.validate.cvv(input.cvv)) {
-        errors.push('cvv');
-    }
+/**
+ * expose
+ */
 
-    each(this.config.required, function (field) {
-        if (!input[field] && ~index(fields, field)) {
-            errors.push(field);
-        }
+module.exports = token;
+
+/**
+ * Fields that are sent to API.
+ *
+ * @type {Array}
+ * @private
+ */
+
+var fields = [
+  'first_name', 'last_name', 'number', 'month', 'year', 'cvv', 'address1', 'address2', 'country', 'city', 'state', 'postal_code', 'phone', 'vat_number', 'token'
+];
+
+/**
+ * Generates a token from customer data.
+ *
+ * The callback signature: `err, response` where `err` is a
+ * connection, request, or server error, and `response` is the
+ * reepay service response. The generated token is accessed
+ * at `response.token`.
+ *
+ * @param {Object|HTMLFormElement} options Billing properties or an HTMLFormElement
+ * with children corresponding to billing properties via 'data-reurly' attributes.
+ * @param {String} options.first_name customer first name
+ * @param {String} options.last_name customer last name
+ * @param {String|Number} options.number card number
+ * @param {String|Number} options.month card expiration month
+ * @param {String|Number} options.year card expiration year
+ * @param {String|Number} options.cvv card verification value
+ * @param {String} [options.address1]
+ * @param {String} [options.address2]
+ * @param {String} [options.country]
+ * @param {String} [options.city]
+ * @param {String} [options.state]
+ * @param {String|Number} [options.postal_code]
+ * @param {Function} done callback
+ */
+
+function token(options, done) {
+  var open = bind(this, this.open);
+  var data = normalize(options);
+  var input = data.values;
+  var userErrors = validate.call(this, input);
+
+  if ('function' !== type(done)) {
+    throw errors('missing-callback');
+  }
+
+  if (userErrors.length) {
+    return done(errors('validation', {
+      fields: userErrors
+    }));
+  }
+
+  var that = this;
+
+  this.request('post', this.config.core + '/authenticate/account_token', {
+    pkey: this.config.publicKey
+  }, function(err, res) {
+    if (err) return done(err);
+
+    input.account_token = res.token;
+
+    that.request('post', that.config.api + '/token', input, function(err, res) {
+      if (err) return done(err);
+      if (data.fields.token && res.id) {
+        data.fields.token.value = res.id;
+      }
+      done(null, res);
     });
 
-    return errors;
+  });
+};
+
+/**
+ * Parses options out of a form element and normalizes according to rules.
+ *
+ * @param {Object|HTMLFormElement} options
+ * @return {Object}
+ */
+
+function normalize(options) {
+  var el = dom.element(options);
+  var data = {
+    fields: {},
+    values: {}
+  };
+
+  if (el && 'form' === el.nodeName.toLowerCase()) {
+    each(el.querySelectorAll('[data-reepay]'), function(field) {
+      var name = dom.data(field, 'reepay');
+      if (~index(fields, name)) {
+        data.fields[name] = field;
+        data.values[name] = dom.value(field);
+      }
+    });
+  } else {
+    data.values = options;
+  }
+
+  data.values.number = parseCard(data.values.number);
+
+  return data;
+}
+
+/**
+ * Checks user input on a token call
+ *
+ * @param {Object} input
+ * @return {Array} indicates which fields are not valid
+ */
+
+function validate(input) {
+  var errors = [];
+
+  if (!this.validate.cardNumber(input.number)) {
+    errors.push('number');
+  }
+
+  if (!this.validate.expiry(input.month, input.year)) {
+    errors.push('month', 'year');
+  }
+
+  if (input.cvv && !this.validate.cvv(input.cvv)) {
+    errors.push('cvv');
+  }
+
+  each(this.config.required, function(field) {
+    if (!input[field] && ~index(fields, field)) {
+      errors.push(field);
+    }
+  });
+
+  return errors;
 }
 
 }, {"component/bind":16,"component/each":17,"component/type":4,"component/indexof":18,"../util/dom":19,"../util/parse-card":20,"../errors":8}],
@@ -2312,7 +2446,7 @@ function dataSet(node, key, value) {
     if (node.dataset) node.dataset[key] = value;
     else node.setAttribute('data-' + slug(key), value);
 }
-}, {"ianstormtaylor/to-slug-case":24,"component/type":4,"component/each":17,"component/map":25}],
+}, {"ianstormtaylor/to-slug-case":24,"component/type":4,"component/each":25,"component/map":26}],
 24: [function(require, module, exports) {
 
 var toSpace = require('to-space-case');
@@ -2336,8 +2470,8 @@ module.exports = toSlugCase;
 function toSlugCase (string) {
   return toSpace(string).replace(/\s/g, '-');
 }
-}, {"to-space-case":26}],
-26: [function(require, module, exports) {
+}, {"to-space-case":27}],
+27: [function(require, module, exports) {
 
 var clean = require('to-no-case');
 
@@ -2362,8 +2496,8 @@ function toSpaceCase (string) {
     return match ? ' ' + match : '';
   });
 }
-}, {"to-no-case":27}],
-27: [function(require, module, exports) {
+}, {"to-no-case":28}],
+28: [function(require, module, exports) {
 
 /**
  * Expose `toNoCase`.
@@ -2440,6 +2574,253 @@ function uncamelize (string) {
 }
 }, {}],
 25: [function(require, module, exports) {
+
+/**
+ * Module dependencies.
+ */
+
+try {
+  var type = require('type');
+} catch (err) {
+  var type = require('component-type');
+}
+
+var toFunction = require('to-function');
+
+/**
+ * HOP reference.
+ */
+
+var has = Object.prototype.hasOwnProperty;
+
+/**
+ * Iterate the given `obj` and invoke `fn(val, i)`
+ * in optional context `ctx`.
+ *
+ * @param {String|Array|Object} obj
+ * @param {Function} fn
+ * @param {Object} [ctx]
+ * @api public
+ */
+
+module.exports = function(obj, fn, ctx){
+  fn = toFunction(fn);
+  ctx = ctx || this;
+  switch (type(obj)) {
+    case 'array':
+      return array(obj, fn, ctx);
+    case 'object':
+      if ('number' == typeof obj.length) return array(obj, fn, ctx);
+      return object(obj, fn, ctx);
+    case 'string':
+      return string(obj, fn, ctx);
+  }
+};
+
+/**
+ * Iterate string chars.
+ *
+ * @param {String} obj
+ * @param {Function} fn
+ * @param {Object} ctx
+ * @api private
+ */
+
+function string(obj, fn, ctx) {
+  for (var i = 0; i < obj.length; ++i) {
+    fn.call(ctx, obj.charAt(i), i);
+  }
+}
+
+/**
+ * Iterate object keys.
+ *
+ * @param {Object} obj
+ * @param {Function} fn
+ * @param {Object} ctx
+ * @api private
+ */
+
+function object(obj, fn, ctx) {
+  for (var key in obj) {
+    if (has.call(obj, key)) {
+      fn.call(ctx, key, obj[key]);
+    }
+  }
+}
+
+/**
+ * Iterate array-ish.
+ *
+ * @param {Array|Object} obj
+ * @param {Function} fn
+ * @param {Object} ctx
+ * @api private
+ */
+
+function array(obj, fn, ctx) {
+  for (var i = 0; i < obj.length; ++i) {
+    fn.call(ctx, obj[i], i);
+  }
+}
+
+}, {"type":21,"component-type":21,"to-function":29}],
+29: [function(require, module, exports) {
+
+/**
+ * Module Dependencies
+ */
+
+var expr;
+try {
+  expr = require('props');
+} catch(e) {
+  expr = require('component-props');
+}
+
+/**
+ * Expose `toFunction()`.
+ */
+
+module.exports = toFunction;
+
+/**
+ * Convert `obj` to a `Function`.
+ *
+ * @param {Mixed} obj
+ * @return {Function}
+ * @api private
+ */
+
+function toFunction(obj) {
+  switch ({}.toString.call(obj)) {
+    case '[object Object]':
+      return objectToFunction(obj);
+    case '[object Function]':
+      return obj;
+    case '[object String]':
+      return stringToFunction(obj);
+    case '[object RegExp]':
+      return regexpToFunction(obj);
+    default:
+      return defaultToFunction(obj);
+  }
+}
+
+/**
+ * Default to strict equality.
+ *
+ * @param {Mixed} val
+ * @return {Function}
+ * @api private
+ */
+
+function defaultToFunction(val) {
+  return function(obj){
+    return val === obj;
+  };
+}
+
+/**
+ * Convert `re` to a function.
+ *
+ * @param {RegExp} re
+ * @return {Function}
+ * @api private
+ */
+
+function regexpToFunction(re) {
+  return function(obj){
+    return re.test(obj);
+  };
+}
+
+/**
+ * Convert property `str` to a function.
+ *
+ * @param {String} str
+ * @return {Function}
+ * @api private
+ */
+
+function stringToFunction(str) {
+  // immediate such as "> 20"
+  if (/^ *\W+/.test(str)) return new Function('_', 'return _ ' + str);
+
+  // properties such as "name.first" or "age > 18" or "age > 18 && age < 36"
+  return new Function('_', 'return ' + get(str));
+}
+
+/**
+ * Convert `object` to a function.
+ *
+ * @param {Object} object
+ * @return {Function}
+ * @api private
+ */
+
+function objectToFunction(obj) {
+  var match = {};
+  for (var key in obj) {
+    match[key] = typeof obj[key] === 'string'
+      ? defaultToFunction(obj[key])
+      : toFunction(obj[key]);
+  }
+  return function(val){
+    if (typeof val !== 'object') return false;
+    for (var key in match) {
+      if (!(key in val)) return false;
+      if (!match[key](val[key])) return false;
+    }
+    return true;
+  };
+}
+
+/**
+ * Built the getter function. Supports getter style functions
+ *
+ * @param {String} str
+ * @return {String}
+ * @api private
+ */
+
+function get(str) {
+  var props = expr(str);
+  if (!props.length) return '_.' + str;
+
+  var val, i, prop;
+  for (i = 0; i < props.length; i++) {
+    prop = props[i];
+    val = '_.' + prop;
+    val = "('function' == typeof " + val + " ? " + val + "() : " + val + ")";
+
+    // mimic negative lookbehind to avoid problems with nested properties
+    str = stripNested(prop, str, val);
+  }
+
+  return str;
+}
+
+/**
+ * Mimic negative lookbehind to avoid problems with nested properties.
+ *
+ * See: http://blog.stevenlevithan.com/archives/mimic-lookbehind-javascript
+ *
+ * @param {String} prop
+ * @param {String} str
+ * @param {String} val
+ * @return {String}
+ * @api private
+ */
+
+function stripNested (prop, str, val) {
+  return str.replace(new RegExp('(\\.)?' + prop, 'g'), function($0, $1) {
+    return $1 ? $0 : val;
+  });
+}
+
+}, {"props":23,"component-props":23}],
+26: [function(require, module, exports) {
 
 /**
  * Module dependencies.
@@ -2717,8 +3098,8 @@ module.exports = {
         return /^\d+$/.test(number) && (number.length === 3 || number.length === 4);
     }
 };
-}, {"component/trim":28,"component/indexof":18,"../util/parse-card":20}],
-28: [function(require, module, exports) {
+}, {"component/trim":30,"component/indexof":18,"../util/parse-card":20}],
+30: [function(require, module, exports) {
 
 exports = module.exports = trim;
 
