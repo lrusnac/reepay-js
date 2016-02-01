@@ -2364,7 +2364,7 @@ module.exports = function(arr, obj){
  * dependencies
  */
 
-var slug = require('ianstormtaylor/to-slug-case');
+var slug = require('ianstormtaylor/to-slug-case@0.1.2');
 var type = require('component/type');
 var each = require('component/each');
 var map = require('component/map');
@@ -2499,16 +2499,19 @@ function dataSet(node, key, value) {
     if (node.dataset) node.dataset[key] = value;
     else node.setAttribute('data-' + slug(key), value);
 }
-}, {"ianstormtaylor/to-slug-case":24,"component/type":4,"component/each":17,"component/map":25}],
+
+}, {"ianstormtaylor/to-slug-case@0.1.2":24,"component/type":4,"component/each":17,"component/map":25}],
 24: [function(require, module, exports) {
 
-var toSpace = require('to-space-case')
+var toSpace = require('to-space-case');
+
 
 /**
- * Export.
+ * Expose `toSlugCase`.
  */
 
-module.exports = toSlugCase
+module.exports = toSlugCase;
+
 
 /**
  * Convert a `string` to slug case.
@@ -2517,10 +2520,112 @@ module.exports = toSlugCase
  * @return {String}
  */
 
-function toSlugCase(string) {
-  return toSpace(string).replace(/\s/g, '-')
+
+function toSlugCase (string) {
+  return toSpace(string).replace(/\s/g, '-');
+}
+}, {"to-space-case":26}],
+26: [function(require, module, exports) {
+
+var clean = require('to-no-case');
+
+
+/**
+ * Expose `toSpaceCase`.
+ */
+
+module.exports = toSpaceCase;
+
+
+/**
+ * Convert a `string` to space case.
+ *
+ * @param {String} string
+ * @return {String}
+ */
+
+
+function toSpaceCase (string) {
+  return clean(string).replace(/[\W_]+(.|$)/g, function (matches, match) {
+    return match ? ' ' + match : '';
+  });
+}
+}, {"to-no-case":27}],
+27: [function(require, module, exports) {
+
+/**
+ * Expose `toNoCase`.
+ */
+
+module.exports = toNoCase;
+
+
+/**
+ * Test whether a string is camel-case.
+ */
+
+var hasSpace = /\s/;
+var hasCamel = /[a-z][A-Z]/;
+var hasSeparator = /[\W_]/;
+
+
+/**
+ * Remove any starting case from a `string`, like camel or snake, but keep
+ * spaces and punctuation that may be important otherwise.
+ *
+ * @param {String} string
+ * @return {String}
+ */
+
+function toNoCase (string) {
+  if (hasSpace.test(string)) return string.toLowerCase();
+
+  if (hasSeparator.test(string)) string = unseparate(string);
+  if (hasCamel.test(string)) string = uncamelize(string);
+  return string.toLowerCase();
 }
 
+
+/**
+ * Separator splitter.
+ */
+
+var separatorSplitter = /[\W_]+(.|$)/g;
+
+
+/**
+ * Un-separate a `string`.
+ *
+ * @param {String} string
+ * @return {String}
+ */
+
+function unseparate (string) {
+  return string.replace(separatorSplitter, function (m, next) {
+    return next ? ' ' + next : '';
+  });
+}
+
+
+/**
+ * Camelcase splitter.
+ */
+
+var camelSplitter = /(.)([A-Z]+)/g;
+
+
+/**
+ * Un-camelcase a `string`.
+ *
+ * @param {String} string
+ * @return {String}
+ */
+
+function uncamelize (string) {
+  return string.replace(camelSplitter, function (m, previous, uppers) {
+    return previous + ' ' + uppers.toLowerCase().split('').join(' ');
+  });
+}
 }, {}],
 25: [function(require, module, exports) {
 
@@ -2800,8 +2905,8 @@ module.exports = {
         return /^\d+$/.test(number) && (number.length === 3 || number.length === 4);
     }
 };
-}, {"component/trim":26,"component/indexof":18,"../util/parse-card":20}],
-26: [function(require, module, exports) {
+}, {"component/trim":28,"component/indexof":18,"../util/parse-card":20}],
+28: [function(require, module, exports) {
 
 exports = module.exports = trim;
 
