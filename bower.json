@@ -1,7 +1,7 @@
 {
   "name": "reepay-js",
   "main": "reepay.js",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "homepage": "https://github.com/reepay/reepay-js",
   "authors": [
     "robert@reepay.com"
