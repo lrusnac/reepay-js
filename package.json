@@ -1,7 +1,7 @@
 {
   "name": "reepay.js",
   "description": "We handle subscriptions for your business",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "license": "MIT",
   "main": "reepay.js",
   "dependencies": {},
