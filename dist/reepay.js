@@ -1579,6 +1579,10 @@ errors.add('credit_card_suspected_fraud', {
     message: 'Suspected fraud on given card.'
 });
 
+errors.add('card-type-not-supported', {
+    message: 'Card type not supported.'
+});
+
 }, {"kewah/mixin":15}],
 15: [function(require, module, exports) {
 if (typeof Object.keys === 'function') {
