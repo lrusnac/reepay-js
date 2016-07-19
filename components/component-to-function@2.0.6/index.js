@@ -5,9 +5,9 @@
 
 var expr;
 try {
-  expr = require('props');
+  expr = require('props:index.js');
 } catch(e) {
-  expr = require('component-props');
+  expr = require('component-props:index.js');
 }
 
 /**

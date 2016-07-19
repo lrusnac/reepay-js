@@ -1,5 +1,5 @@
 
-var clean = require('to-no-case');
+var clean = require('to-no-case:index.js');
 
 
 /**

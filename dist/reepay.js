@@ -102,10 +102,10 @@ var Reepay = require('./lib/reepay');
 module.exports = exports = new Reepay();
 }, {"./lib/reepay":2}],
 2: [function(require, module, exports) {
-var merge = require('yields/merge');
-var type = require('component/type');
-var qs = require('visionmedia/node-querystring');
-var jsonp = require('webmodules/jsonp');
+var merge = require('yields/merge:index.js');
+var type = require('component/type:index.js');
+var qs = require('visionmedia/node-querystring:index.js');
+var jsonp = require('webmodules/jsonp:index.js');
 var version = require('./version');
 var errors = require('./errors');
 
@@ -322,12 +322,11 @@ Reepay.prototype.jsonp = function (route, data, done) {
     });
 };
 
-
 Reepay.prototype.open = require('./reepay/open');
 Reepay.prototype.token = require('./reepay/token');
 Reepay.prototype.validate = require('./reepay/validate');
 
-}, {"yields/merge":3,"component/type":4,"visionmedia/node-querystring":5,"webmodules/jsonp":6,"./version":7,"./errors":8,"./reepay/open":9,"./reepay/token":10,"./reepay/validate":11}],
+}, {"yields/merge:index.js":3,"component/type:index.js":4,"visionmedia/node-querystring:index.js":5,"webmodules/jsonp:index.js":6,"./version":7,"./errors":8,"./reepay/open":9,"./reepay/token":10,"./reepay/validate":11}],
 3: [function(require, module, exports) {
 
 /**
@@ -488,10 +487,10 @@ function promote(parent, key) {
 
 function parse(parts, parent, key, val) {
   var part = parts.shift();
-  
+
   // illegal
   if (Object.getOwnPropertyDescriptor(Object.prototype, key)) return;
-  
+
   // end
   if (!part) {
     if (isArray(parent[key])) {
@@ -773,7 +772,7 @@ function decode(str) {
  * Module dependencies
  */
 
-var debug = require('debug')('jsonp');
+var debug = require('debug:debug.js')('jsonp');
 
 /**
  * Module exports.
@@ -867,179 +866,8 @@ function jsonp(url, opts, fn){
   return cancel;
 }
 
-}, {"debug":12}],
+}, {"debug:debug.js":12}],
 12: [function(require, module, exports) {
-
-/**
- * This is the web browser implementation of `debug()`.
- *
- * Expose `debug()` as the module.
- */
-
-exports = module.exports = require('./debug');
-exports.log = log;
-exports.formatArgs = formatArgs;
-exports.save = save;
-exports.load = load;
-exports.useColors = useColors;
-exports.storage = 'undefined' != typeof chrome
-               && 'undefined' != typeof chrome.storage
-                  ? chrome.storage.local
-                  : localstorage();
-
-/**
- * Colors.
- */
-
-exports.colors = [
-  'lightseagreen',
-  'forestgreen',
-  'goldenrod',
-  'dodgerblue',
-  'darkorchid',
-  'crimson'
-];
-
-/**
- * Currently only WebKit-based Web Inspectors, Firefox >= v31,
- * and the Firebug extension (any Firefox version) are known
- * to support "%c" CSS customizations.
- *
- * TODO: add a `localStorage` variable to explicitly enable/disable colors
- */
-
-function useColors() {
-  // is webkit? http://stackoverflow.com/a/16459606/376773
-  return ('WebkitAppearance' in document.documentElement.style) ||
-    // is firebug? http://stackoverflow.com/a/398120/376773
-    (window.console && (console.firebug || (console.exception && console.table))) ||
-    // is firefox >= v31?
-    // https://developer.mozilla.org/en-US/docs/Tools/Web_Console#Styling_messages
-    (navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/) && parseInt(RegExp.$1, 10) >= 31);
-}
-
-/**
- * Map %j to `JSON.stringify()`, since no Web Inspectors do that by default.
- */
-
-exports.formatters.j = function(v) {
-  return JSON.stringify(v);
-};
-
-
-/**
- * Colorize log arguments if enabled.
- *
- * @api public
- */
-
-function formatArgs() {
-  var args = arguments;
-  var useColors = this.useColors;
-
-  args[0] = (useColors ? '%c' : '')
-    + this.namespace
-    + (useColors ? ' %c' : ' ')
-    + args[0]
-    + (useColors ? '%c ' : ' ')
-    + '+' + exports.humanize(this.diff);
-
-  if (!useColors) return args;
-
-  var c = 'color: ' + this.color;
-  args = [args[0], c, 'color: inherit'].concat(Array.prototype.slice.call(args, 1));
-
-  // the final "%c" is somewhat tricky, because there could be other
-  // arguments passed either before or after the %c, so we need to
-  // figure out the correct index to insert the CSS into
-  var index = 0;
-  var lastC = 0;
-  args[0].replace(/%[a-z%]/g, function(match) {
-    if ('%%' === match) return;
-    index++;
-    if ('%c' === match) {
-      // we only are interested in the *last* %c
-      // (the user may have provided their own)
-      lastC = index;
-    }
-  });
-
-  args.splice(lastC, 0, c);
-  return args;
-}
-
-/**
- * Invokes `console.log()` when available.
- * No-op when `console.log` is not a "function".
- *
- * @api public
- */
-
-function log() {
-  // this hackery is required for IE8/9, where
-  // the `console.log` function doesn't have 'apply'
-  return 'object' === typeof console
-    && console.log
-    && Function.prototype.apply.call(console.log, console, arguments);
-}
-
-/**
- * Save `namespaces`.
- *
- * @param {String} namespaces
- * @api private
- */
-
-function save(namespaces) {
-  try {
-    if (null == namespaces) {
-      exports.storage.removeItem('debug');
-    } else {
-      exports.storage.debug = namespaces;
-    }
-  } catch(e) {}
-}
-
-/**
- * Load `namespaces`.
- *
- * @return {String} returns the previously persisted debug modes
- * @api private
- */
-
-function load() {
-  var r;
-  try {
-    r = exports.storage.debug;
-  } catch(e) {}
-  return r;
-}
-
-/**
- * Enable namespaces listed in `localStorage.debug` initially.
- */
-
-exports.enable(load());
-
-/**
- * Localstorage attempts to return the localstorage.
- *
- * This is necessary because safari throws
- * when a user disables cookies/localstorage
- * and you attempt to access it.
- *
- * @return {LocalStorage}
- * @api private
- */
-
-function localstorage(){
-  try {
-    return window.localStorage;
-  } catch (e) {}
-}
-
-}, {"./debug":13}],
-13: [function(require, module, exports) {
 
 /**
  * This is the common logic for both the Node.js and web browser
@@ -1053,7 +881,7 @@ exports.coerce = coerce;
 exports.disable = disable;
 exports.enable = enable;
 exports.enabled = enabled;
-exports.humanize = require('ms');
+exports.humanize = require('ms:index.js');
 
 /**
  * The currently active debug mode names, and names to skip.
@@ -1238,8 +1066,8 @@ function coerce(val) {
   return val;
 }
 
-}, {"ms":14}],
-14: [function(require, module, exports) {
+}, {"ms:index.js":13}],
+13: [function(require, module, exports) {
 /**
  * Helpers.
  */
@@ -1380,7 +1208,7 @@ module.exports = '1.0.2';
  * dependencies
  */
 
-var mixin = require('kewah/mixin');
+var mixin = require('kewah/mixin:index.js');
 
 /**
  * Export `errors`.
@@ -1583,8 +1411,8 @@ errors.add('card-type-not-supported', {
     message: 'Card type not supported.'
 });
 
-}, {"kewah/mixin":15}],
-15: [function(require, module, exports) {
+}, {"kewah/mixin:index.js":14}],
+14: [function(require, module, exports) {
 if (typeof Object.keys === 'function') {
   module.exports = function(to, from) {
     Object.keys(from).forEach(function(property) {
@@ -1607,8 +1435,8 @@ if (typeof Object.keys === 'function') {
  * Module dependencies.
  */
 
-var type = require('component/type');
-var qs = require('visionmedia/node-querystring');
+var type = require('component/type:index.js');
+var qs = require('visionmedia/node-querystring:index.js');
 var errors = require('../errors');
 
 /**
@@ -1655,15 +1483,16 @@ function open(url, data, done) {
         window.open(url);
     });
 };
-}, {"component/type":4,"visionmedia/node-querystring":5,"../errors":8}],
+
+}, {"component/type:index.js":4,"visionmedia/node-querystring:index.js":5,"../errors":8}],
 10: [function(require, module, exports) {
 /*!
  * Module dependencies.
  */
-var bind = require('component/bind');
-var each = require('component/each');
-var type = require('component/type');
-var index = require('component/indexof');
+var bind = require('component/bind:index.js');
+var each = require('component/each:index.js');
+var type = require('component/type:index.js');
+var index = require('component/indexof:index.js');
 var dom = require('../util/dom');
 var parseCard = require('../util/parse-card');
 var errors = require('../errors');
@@ -1721,155 +1550,7 @@ function token(options, done) {
   }
 
   if (userErrors.length) {
-    return done(errors('validation', {
-      fields: userErrors
-    }));
-  }
 
-  var that = this;
-
-  this.request('post', this.config.core + '/authenticate/account_token', {
-    pkey: this.config.publicKey
-  }, function(err, res) {
-    if (err) return done(err);
-
-    input.account_token = res.token;
-
-    that.request('post', that.config.api + '/token', input, function(err, res) {
-      if (err) return done(err);
-      if (data.fields.token && res.id) {
-        data.fields.token.value = res.id;
-      }
-      done(null, res);
-    });
-
-  });
-};
-
-/**
- * Parses options out of a form element and normalizes according to rules.
- *
- * @param {Object|HTMLFormElement} options
- * @return {Object}
- */
-
-function normalize(options) {
-  var el = dom.element(options);
-  var data = {
-    fields: {},
-    values: {}
-  };
-
-  if (el && 'form' === el.nodeName.toLowerCase()) {
-    each(el.querySelectorAll('[data-reepay]'), function(field) {
-      var name = dom.data(field, 'reepay');
-      if (~index(fields, name)) {
-        data.fields[name] = field;
-        data.values[name] = dom.value(field);
-      }
-    });
-  } else {
-    data.values = options;
-  }
-
-  data.values.number = parseCard(data.values.number);
-
-  return data;
-}
-
-/**
- * Checks user input on a token call
- *
- * @param {Object} input
- * @return {Array} indicates which fields are not valid
- */
-
-function validate(input) {
-  var errors = [];
-
-  if (!this.validate.cardNumber(input.number)) {
-    errors.push('number');
-  }
-
-  if (!this.validate.expiry(input.month, input.year)) {
-    errors.push('month', 'year');
-  }
-
-  if (input.cvv && !this.validate.cvv(input.cvv)) {
-    errors.push('cvv');
-  }
-
-  each(this.config.required, function(field) {
-    if (!input[field] && ~index(fields, field)) {
-      errors.push(field);
-    }
-  });
-
-  return errors;
-}/*!
- * Module dependencies.
- */
-var bind = require('component/bind');
-var each = require('component/each');
-var type = require('component/type');
-var index = require('component/indexof');
-var dom = require('../util/dom');
-var parseCard = require('../util/parse-card');
-var errors = require('../errors');
-
-/**
- * expose
- */
-
-module.exports = token;
-
-/**
- * Fields that are sent to API.
- *
- * @type {Array}
- * @private
- */
-
-var fields = [
-  'first_name', 'last_name', 'number', 'month', 'year', 'cvv', 'address1', 'address2', 'country', 'city', 'state', 'postal_code', 'phone', 'vat_number', 'token'
-];
-
-/**
- * Generates a token from customer data.
- *
- * The callback signature: `err, response` where `err` is a
- * connection, request, or server error, and `response` is the
- * reepay service response. The generated token is accessed
- * at `response.token`.
- *
- * @param {Object|HTMLFormElement} options Billing properties or an HTMLFormElement
- * with children corresponding to billing properties via 'data-reurly' attributes.
- * @param {String} options.first_name customer first name
- * @param {String} options.last_name customer last name
- * @param {String|Number} options.number card number
- * @param {String|Number} options.month card expiration month
- * @param {String|Number} options.year card expiration year
- * @param {String|Number} options.cvv card verification value
- * @param {String} [options.address1]
- * @param {String} [options.address2]
- * @param {String} [options.country]
- * @param {String} [options.city]
- * @param {String} [options.state]
- * @param {String|Number} [options.postal_code]
- * @param {Function} done callback
- */
-
-function token(options, done) {
-  var open = bind(this, this.open);
-  var data = normalize(options);
-  var input = data.values;
-  var userErrors = validate.call(this, input);
-
-  if ('function' !== type(done)) {
-    throw errors('missing-callback');
-  }
-
-  if (userErrors.length) {
     return done(errors('validation', {
       fields: userErrors
     }));
@@ -1957,8 +1638,8 @@ function validate(input) {
   return errors;
 }
 
-}, {"component/bind":16,"component/each":17,"component/type":4,"component/indexof":18,"../util/dom":19,"../util/parse-card":20,"../errors":8}],
-16: [function(require, module, exports) {
+}, {"component/bind:index.js":15,"component/each:index.js":16,"component/type:index.js":4,"component/indexof:index.js":17,"../util/dom":18,"../util/parse-card":19,"../errors":8}],
+15: [function(require, module, exports) {
 /**
  * Slice reference.
  */
@@ -1984,19 +1665,19 @@ module.exports = function(obj, fn){
 };
 
 }, {}],
-17: [function(require, module, exports) {
+16: [function(require, module, exports) {
 
 /**
  * Module dependencies.
  */
 
 try {
-  var type = require('type');
+  var type = require('type:index.js');
 } catch (err) {
-  var type = require('component-type');
+  var type = require('component-type:index.js');
 }
 
-var toFunction = require('to-function');
+var toFunction = require('to-function:index.js');
 
 /**
  * HOP reference.
@@ -2075,8 +1756,8 @@ function array(obj, fn, ctx) {
   }
 }
 
-}, {"type":21,"component-type":21,"to-function":22}],
-21: [function(require, module, exports) {
+}, {"type:index.js":20,"component-type:index.js":20,"to-function:index.js":21}],
+20: [function(require, module, exports) {
 
 /**
  * toString ref.
@@ -2111,7 +1792,7 @@ module.exports = function(val){
 };
 
 }, {}],
-22: [function(require, module, exports) {
+21: [function(require, module, exports) {
 
 /**
  * Module Dependencies
@@ -2119,9 +1800,9 @@ module.exports = function(val){
 
 var expr;
 try {
-  expr = require('props');
+  expr = require('props:index.js');
 } catch(e) {
-  expr = require('component-props');
+  expr = require('component-props:index.js');
 }
 
 /**
@@ -2265,8 +1946,8 @@ function stripNested (prop, str, val) {
   });
 }
 
-}, {"props":23,"component-props":23}],
-23: [function(require, module, exports) {
+}, {"props:index.js":22,"component-props:index.js":22}],
+22: [function(require, module, exports) {
 /**
  * Global Names
  */
@@ -2354,7 +2035,7 @@ function prefixed(str) {
 }
 
 }, {}],
-18: [function(require, module, exports) {
+17: [function(require, module, exports) {
 module.exports = function(arr, obj){
   if (arr.indexOf) return arr.indexOf(obj);
   for (var i = 0; i < arr.length; ++i) {
@@ -2363,15 +2044,15 @@ module.exports = function(arr, obj){
   return -1;
 };
 }, {}],
-19: [function(require, module, exports) {
+18: [function(require, module, exports) {
 /**
  * dependencies
  */
 
-var slug = require('ianstormtaylor/to-slug-case@0.1.2');
-var type = require('component/type');
-var each = require('component/each');
-var map = require('component/map');
+var slug = require('ianstormtaylor/to-slug-case@0.1.2:index.js');
+var type = require('component/type:index.js');
+var each = require('component/each:index.js');
+var map = require('component/map:index.js');
 
 /**
  * expose
@@ -2504,10 +2185,10 @@ function dataSet(node, key, value) {
     else node.setAttribute('data-' + slug(key), value);
 }
 
-}, {"ianstormtaylor/to-slug-case@0.1.2":24,"component/type":4,"component/each":17,"component/map":25}],
-24: [function(require, module, exports) {
+}, {"ianstormtaylor/to-slug-case@0.1.2:index.js":23,"component/type:index.js":4,"component/each:index.js":16,"component/map:index.js":24}],
+23: [function(require, module, exports) {
 
-var toSpace = require('to-space-case');
+var toSpace = require('to-space-case:index.js');
 
 
 /**
@@ -2528,10 +2209,11 @@ module.exports = toSlugCase;
 function toSlugCase (string) {
   return toSpace(string).replace(/\s/g, '-');
 }
-}, {"to-space-case":26}],
-26: [function(require, module, exports) {
 
-var clean = require('to-no-case');
+}, {"to-space-case:index.js":25}],
+25: [function(require, module, exports) {
+
+var clean = require('to-no-case:index.js');
 
 
 /**
@@ -2554,8 +2236,9 @@ function toSpaceCase (string) {
     return match ? ' ' + match : '';
   });
 }
-}, {"to-no-case":27}],
-27: [function(require, module, exports) {
+
+}, {"to-no-case:index.js":26}],
+26: [function(require, module, exports) {
 
 /**
  * Expose `toNoCase`.
@@ -2631,13 +2314,13 @@ function uncamelize (string) {
   });
 }
 }, {}],
-25: [function(require, module, exports) {
+24: [function(require, module, exports) {
 
 /**
  * Module dependencies.
  */
 
-var toFunction = require('to-function');
+var toFunction = require('to-function:index.js');
 
 /**
  * Map the given `arr` with callback `fn(val, i)`.
@@ -2656,8 +2339,9 @@ module.exports = function(arr, fn){
   }
   return ret;
 };
-}, {"to-function":22}],
-20: [function(require, module, exports) {
+
+}, {"to-function:index.js":21}],
+19: [function(require, module, exports) {
 /**
  * Removes dashes and spaces from a card number.
  *
@@ -2673,8 +2357,8 @@ module.exports = function parseCard(number) {
 /* !
  * Module dependencies.
  */
-var trim = require('component/trim');
-var index = require('component/indexof');
+var trim = require('component/trim:index.js');
+var index = require('component/indexof:index.js');
 var parseCard = require('../util/parse-card');
 
 var formatCardNumberCallback = null;
@@ -2909,8 +2593,9 @@ module.exports = {
         return /^\d+$/.test(number) && (number.length === 3 || number.length === 4);
     }
 };
-}, {"component/trim":28,"component/indexof":18,"../util/parse-card":20}],
-28: [function(require, module, exports) {
+
+}, {"component/trim:index.js":27,"component/indexof:index.js":17,"../util/parse-card":19}],
+27: [function(require, module, exports) {
 
 exports = module.exports = trim;
 
