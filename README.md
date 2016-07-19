@@ -1,6 +1,6 @@
 We handle subscriptions for your business.
 
-Here you find source for our js libary, feel free to contribute. 
+Here you find source for our js libary, feel free to contribute.
 
 ## Documentation
 
@@ -32,6 +32,12 @@ $ bower install reepay-js
 $ npm install
 $ make
 ```
+
+## Test
+```bash
+$ python -m SimpleHTTPServer 8001
+```
+open `http://localhost:8001` and the browser console
 
 ## License
 

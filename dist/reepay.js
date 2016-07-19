@@ -1557,15 +1557,16 @@ function token(options, done) {
 
   var that = this;
 
-  this.request('post', this.config.core + '/authenticate/account_token?cache='+(Math.random()*1000000), {
-
+  this.request('post', this.config.core + '/authenticate/account_token', {
+    cache: Math.random()*1000000,
     pkey: this.config.publicKey
   }, function(err, res) {
     if (err) return done(err);
 
     input.account_token = res.token;
 
-    that.request('post', that.config.api + '/token?cache='+(Math.random()*1000000), input, function(err, res) {
+    input['cache'] = Math.random()*1000000;
+    that.request('post', that.config.api + '/token', input, function(err, res) {
       if (err) return done(err);
       if (data.fields.token && res.id) {
         data.fields.token.value = res.id;
