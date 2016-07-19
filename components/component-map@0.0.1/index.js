@@ -3,7 +3,7 @@
  * Module dependencies.
  */
 
-var toFunction = require('to-function');
+var toFunction = require('to-function:index.js');
 
 /**
  * Map the given `arr` with callback `fn(val, i)`.

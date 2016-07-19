@@ -2,7 +2,7 @@
  * Module dependencies
  */
 
-var debug = require('debug')('jsonp');
+var debug = require('debug:debug.js')('jsonp');
 
 /**
  * Module exports.

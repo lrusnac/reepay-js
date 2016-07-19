@@ -2,13 +2,14 @@
 
 <head></head>
 
-<script src="build/reepay.js"></script>
 <script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+<script src="dist/reepay.js"></script>
+
 
 <body>
     <form id="testtoken">
         Cardno:
-        <input type="text" data-reepay="cardnumber" id="cardn" value="4929404855900811">
+        <input type="text" data-reepay="number" id="cardn" value="4111 1111 1111 1111">
         <br /> Month:
         <input type="text" data-reepay="month" value="12">
         <br /> Year:
@@ -26,11 +27,12 @@
 
 
     <script>
-        reepay.configure('sc-ABCDEFGHI123456789');
+        reepay.configure('pub_4340532086bc46daa3da974c3840e292');
 
         $('#testtoken').on('submit', function (event) {
             var form = this;
             event.preventDefault();
+
             reepay.token(form, function (err, token) {
                 if (err) {
                     console.log(err);
@@ -40,22 +42,13 @@
                     // form to your server; alternatively, you can access token.id and do
                     // any processing you wish
                     //form.submit();
+
+                    alert(token.id)
                     console.log("DONE");
                 }
             });
         });
 
-        reepay.validate.formatCardNumber("#cardn", function (str) {
-            console.log("----", str.type);
-        });
-        var testluhm = reepay.validate.cardNumber("4929 4048 5590 0811");
-        console.log(testluhm);
-        var testcardtype = reepay.validate.cardType("4571 4048 5590 0811");
-        console.log(testcardtype);
-        var testexp = reepay.validate.expiry("3", "15");
-        console.log(testexp);
-        var testcvv = reepay.validate.cvv("123");
-        console.log(testcvv);
     </script>
 </body>
 

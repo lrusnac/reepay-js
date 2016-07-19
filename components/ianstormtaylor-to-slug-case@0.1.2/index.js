@@ -1,5 +1,5 @@
 
-var toSpace = require('to-space-case');
+var toSpace = require('to-space-case:index.js');
 
 
 /**
