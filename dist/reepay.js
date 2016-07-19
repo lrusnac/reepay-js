@@ -158,7 +158,7 @@ function Reepay(options) {
  */
 
 Reepay.prototype.configure = function (options) {
-    if (this.configured) throw errors('already-configured');
+    //if (this.configured) throw errors('already-configured');
 
     if (type(options) === 'string') options = {
         publicKey: options
