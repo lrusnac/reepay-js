@@ -4,12 +4,12 @@
  */
 
 try {
-  var type = require('type');
+  var type = require('type:index.js');
 } catch (err) {
-  var type = require('component-type');
+  var type = require('component-type:index.js');
 }
 
-var toFunction = require('to-function');
+var toFunction = require('to-function:index.js');
 
 /**
  * HOP reference.
